@@ -1,4 +1,4 @@
-package in.infusers.ratelimit.config;
+package in.infusers.library.ratelimit.config;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,8 +8,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * Top-level configuration for the starter, independent of the per-path and
  * IP-security property groups. Controls the Redis key prefix used by
- * {@link in.infusers.ratelimit.core.RateLimitingService} and the path
- * exclusions used by {@link in.infusers.ratelimit.core.EndpointNormalizer}.
+ * {@link in.infusers.library.ratelimit.core.RateLimitingService} and the path
+ * exclusions used by {@link in.infusers.library.ratelimit.core.EndpointNormalizer}.
  */
 @ConfigurationProperties(prefix = "infusers.ratelimit")
 public class RateLimitStarterProperties {

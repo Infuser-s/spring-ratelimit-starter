@@ -1,4 +1,4 @@
-package in.infusers.ratelimit.filter;
+package in.infusers.library.ratelimit.filter;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -11,10 +11,10 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
-import in.infusers.ratelimit.alert.SecurityAlertService;
-import in.infusers.ratelimit.config.RateLimitProperties;
-import in.infusers.ratelimit.core.EndpointNormalizer;
-import in.infusers.ratelimit.core.RateLimitingService;
+import in.infusers.library.ratelimit.alert.SecurityAlertService;
+import in.infusers.library.ratelimit.config.RateLimitProperties;
+import in.infusers.library.ratelimit.core.EndpointNormalizer;
+import in.infusers.library.ratelimit.core.RateLimitingService;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

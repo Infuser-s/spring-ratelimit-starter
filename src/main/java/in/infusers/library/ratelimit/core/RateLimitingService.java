@@ -1,4 +1,4 @@
-package in.infusers.ratelimit.core;
+package in.infusers.library.ratelimit.core;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import in.infusers.ratelimit.config.RateLimitStarterProperties;
+import in.infusers.library.ratelimit.config.RateLimitStarterProperties;
 
 /**
  * Redis-backed sliding-window rate limiter. One INCR per key per window;

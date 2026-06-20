@@ -84,7 +84,7 @@ pipeline {
                     def version = readMavenPom().version
                     echo "Checking if version ${version} exists in Central..."
 
-                    def artifactGroup = 'in.infusers.ratelimit'
+                    def artifactGroup = 'in.infusers.library'
                     def artifactId = 'spring-ratelimit-starter'
 
                     def repositoryUrl = "https://repo.maven.apache.org/maven2/${artifactGroup.replace('.', '/')}/${artifactId}/${version}"

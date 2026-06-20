@@ -1,4 +1,4 @@
-package in.infusers.ratelimit.config;
+package in.infusers.library.ratelimit.config;
 
 import java.util.ArrayList;
 import java.util.List;

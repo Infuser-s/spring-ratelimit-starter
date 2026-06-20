@@ -1,4 +1,4 @@
-package in.infusers.ratelimit.alert;
+package in.infusers.library.ratelimit.alert;
 
 /**
  * Callback for rate-limit security breaches (IP blocks, API path breaches).

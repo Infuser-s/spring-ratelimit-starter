@@ -1,4 +1,4 @@
-package in.infusers.ratelimit.config;
+package in.infusers.library.ratelimit.config;
 
 import java.time.Duration;
 import java.util.Map;

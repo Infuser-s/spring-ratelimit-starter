@@ -1,4 +1,4 @@
-package in.infusers.ratelimit.filter;
+package in.infusers.library.ratelimit.filter;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -16,10 +16,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-import in.infusers.ratelimit.alert.SecurityAlertService;
-import in.infusers.ratelimit.config.IpSecurityProperties;
-import in.infusers.ratelimit.core.ClientIpResolver;
-import in.infusers.ratelimit.core.RateLimitingService;
+import in.infusers.library.ratelimit.alert.SecurityAlertService;
+import in.infusers.library.ratelimit.config.IpSecurityProperties;
+import in.infusers.library.ratelimit.core.ClientIpResolver;
+import in.infusers.library.ratelimit.core.RateLimitingService;
 
 /** IP-based security rate limiter. First in the filter chain (Order 1). */
 @Component

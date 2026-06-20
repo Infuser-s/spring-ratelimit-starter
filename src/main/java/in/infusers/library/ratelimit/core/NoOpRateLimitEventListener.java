@@ -1,4 +1,4 @@
-package in.infusers.ratelimit.core;
+package in.infusers.library.ratelimit.core;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

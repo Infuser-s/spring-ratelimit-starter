@@ -1,9 +1,9 @@
-package in.infusers.ratelimit.core;
+package in.infusers.library.ratelimit.core;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import in.infusers.ratelimit.config.RateLimitStarterProperties;
+import in.infusers.library.ratelimit.config.RateLimitStarterProperties;
 
 /**
  * Collapses dynamic path segments (numeric IDs, emails) to a single
