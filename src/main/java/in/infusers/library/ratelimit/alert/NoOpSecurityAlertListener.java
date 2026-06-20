@@ -2,11 +2,13 @@ package in.infusers.library.ratelimit.alert;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.stereotype.Component;
 
-@Component
-@ConditionalOnMissingBean(SecurityAlertListener.class)
+/**
+ * Registered as a {@code @Bean} from {@code RateLimitAutoConfiguration} rather than
+ * {@code @Component}-scanned — {@code @ConditionalOnMissingBean} does not reliably
+ * evaluate on component-scanned classes (no competing bean still failed to register
+ * in testing). Keep this a plain class.
+ */
 public class NoOpSecurityAlertListener implements SecurityAlertListener {
 
     private static final Logger log = LoggerFactory.getLogger(NoOpSecurityAlertListener.class);
