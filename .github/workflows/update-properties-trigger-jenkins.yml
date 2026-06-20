@@ -1,0 +1,17 @@
+name: Update version.properties on Commit and Trigger Jenkins..
+
+on:
+  push:
+    branches:
+      - stage
+      - prod
+
+jobs:
+  call-shared-workflow:
+    uses: Infuser-s/infusers-shared-actions/.github/workflows/update-version.yml@master
+    with:
+      app_name: infusers-library
+      branch_name: ${{ github.ref_name }}    
+      skip_version_number_handling: true      
+    secrets:
+      my_github_token: ${{ secrets.MY_GITHUB_TOKEN }}
