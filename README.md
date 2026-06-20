@@ -15,7 +15,7 @@ Redis-backed rate limiting for Spring Boot — per-route limits, IP-level securi
 <dependency>
     <groupId>in.infusers.library</groupId>
     <artifactId>spring-ratelimit-starter</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
 </dependency>
 ```
 

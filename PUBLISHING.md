@@ -30,6 +30,22 @@ Credentials live in Jenkins, not here:
 
 GitHub webhook config currently causes a `stage`-branch push to also trigger the `Promote` (prod) Jenkins job, not just the dev build job. Not yet fixed — needs the GitHub webhook list checked for duplicates and the Promote job's branch filter scoped so it only fires on the intended branch/tag. Until fixed, watch Jenkins after every stage push to make sure Promote didn't fire unintentionally.
 
+## 0.1.0 → 0.1.1 — startup-crash bug, fixed
+
+0.1.0 shipped with zero tests. Writing a test suite afterward (45 tests, JUnit5 + Mockito + Spring's `ApplicationContextRunner`) surfaced a real bug: `NoOpRateLimitEventListener`/`NoOpSecurityAlertListener` were `@Component`-scanned classes with class-level `@ConditionalOnMissingBean`. Confirmed via a bare `AnnotationConfigApplicationContext` probe that this never actually registers the bean — **even with zero competing beans**. Any 0.1.0 consumer that doesn't supply its own `RateLimitEventListener`/`SecurityAlertListener` bean gets `UnsatisfiedDependencyException` at startup.
+
+Fixed in 0.1.1: both no-op defaults moved to explicit `@Bean @ConditionalOnMissingBean` methods inside `RateLimitAutoConfiguration`, alongside the existing `endpointNormalizer` bean method. Verified working via the same `ApplicationContextRunner` test.
+
+**0.1.0 can't be patched in place — Central publishes are immutable.** If anything is still pinned to 0.1.0, bump to `0.1.1` or later. infusers-library was never affected (it always supplied its own listener beans), but any zero-config consumer would be.
+
+Lesson for future starters built on this pattern: conditional-default beans must be `@Bean` methods in the autoconfiguration class, never `@Component` + class-level `@Conditional*`.
+
+## Tests
+
+45 tests (JUnit5 + Mockito + AssertJ + Spring's `ApplicationContextRunner`), covering all 12 non-interface classes. `mvn test` requires JDK 17 or 21 — Mockito's inline mock maker doesn't yet support JDK 25's bytecode on this machine's toolchain; `JAVA_HOME=$(/usr/libexec/java_home -v 17) mvn test` works around it.
+
+Tests run on every `stage` push (`Jenkinsfile` → `BuildUtils.mvnInstall(..., 'dev')`, no skip flag for non-prod profiles). They do **not** run during the actual Promote/publish step — both `mvnInstall(..., 'prod')` and the final `mvn deploy` pass `-DskipTests`/`-Dmaven.test.skip=true`, trusting that the dev pipeline already gated the commit being promoted.
+
 ## Config that lives outside this repo
 
 This repo has no knowledge of any specific consumer's environment — don't hardcode real values here.
