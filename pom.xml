@@ -19,12 +19,26 @@
 		</license>
 	</licenses>
 
+	<scm>
+		<connection>scm:git:https://github.com/Infuser-s/spring-ratelimit-starter.git</connection>
+		<developerConnection>scm:git:https://github.com/Infuser-s/spring-ratelimit-starter.git</developerConnection>
+		<url>https://github.com/Infuser-s/spring-ratelimit-starter</url>
+	</scm>
+
+	<developers>
+		<developer>
+			<name>Prasad Bayi</name>
+			<email>infusers.in@gmail.com</email>
+			<organization>Infuser-s</organization>
+			<organizationUrl>https://github.com/Infuser-s</organizationUrl>
+		</developer>
+	</developers>
+
 	<properties>
 		<maven.compiler.source>17</maven.compiler.source>
 		<maven.compiler.target>17</maven.compiler.target>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<spring-boot.version>3.3.4</spring-boot.version>
-		<skipSigning>true</skipSigning>
 	</properties>
 
 	<dependencyManagement>
@@ -164,6 +178,9 @@
 		</profile>
 		<profile>
 			<id>prod</id>
+			<properties>
+				<skipSigning>false</skipSigning>
+			</properties>
 		</profile>
 	</profiles>
 </project>
