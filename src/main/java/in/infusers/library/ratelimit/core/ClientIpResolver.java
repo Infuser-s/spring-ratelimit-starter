@@ -1,4 +1,4 @@
-package in.infusers.ratelimit.core;
+package in.infusers.library.ratelimit.core;
 
 import jakarta.servlet.http.HttpServletRequest;
 

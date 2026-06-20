@@ -1,4 +1,4 @@
-package in.infusers.ratelimit.alert;
+package in.infusers.library.ratelimit.alert;
 
 import java.util.concurrent.ConcurrentHashMap;
 

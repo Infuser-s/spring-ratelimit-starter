@@ -1,4 +1,4 @@
-package in.infusers.ratelimit.core;
+package in.infusers.library.ratelimit.core;
 
 /**
  * Callback invoked whenever a rate limit or IP-security block fires.
