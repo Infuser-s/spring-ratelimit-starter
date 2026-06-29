@@ -7,7 +7,7 @@ properties([
 quietPeriod(0)
 
 // Scripted on purpose - see infusers-auth/Jenkinsfile for why (executor pinning bug).
-withExclusiveBuild(resource: "spring-ratelimit-starter-activity") {
+withExclusiveBuild(resource: "spring-ratelimit-starter-activity", priority: 10) {
     env.PROJECT_TYPE = 'springboot'
     env.MAVEN_CACHE = "${HOME}/maven-caches/spring-ratelimit-starter/dev"
 
