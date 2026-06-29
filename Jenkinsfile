@@ -7,6 +7,9 @@ properties([
 quietPeriod(0)
 
 // Scripted on purpose - see infusers-auth/Jenkinsfile for why (executor pinning bug).
+// Kills any lower-priority test/analysis job currently holding global-executor
+// instead of waiting for it to finish naturally - see abortConflictingJobs.groovy.
+abortConflictingJobs()
 withExclusiveBuild(resource: "spring-ratelimit-starter-activity", priority: 10) {
     env.PROJECT_TYPE = 'springboot'
     env.MAVEN_CACHE = "${HOME}/maven-caches/spring-ratelimit-starter/dev"
