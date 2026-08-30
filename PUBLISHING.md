@@ -9,7 +9,7 @@ Central requires a published groupId to equal the verified namespace or be a sub
 ## Account
 
 - Central Portal username: `infuser`
-- GPG signing key: `0x4AF52EF9` (see `<keyname>` in `pom.xml`)
+- GPG signing key: `0xB239A086FC8D59CB` (see `<keyname>` in `pom.xml`) — rotated 2026-08-30; if the Jenkins `gpg-public-key`/`gpg-private-key` credentials are ever rotated again, update this and `pom.xml` together, or signing fails with `gpg: skipped "<keyname>": No secret key`
 
 Credentials live in Jenkins, not here:
 
