@@ -152,8 +152,8 @@
 					</execution>
 				</executions>
 				<configuration>
-					<keyname>0x4AF52EF9</keyname>
-					<passphraseServerId>0x4AF52EF9</passphraseServerId>
+					<keyname>0xB239A086FC8D59CB</keyname>
+					<passphraseServerId>0xB239A086FC8D59CB</passphraseServerId>
 					<skip>${skipSigning}</skip>
 					<gpgArguments>
 						<arg>--pinentry-mode</arg>
