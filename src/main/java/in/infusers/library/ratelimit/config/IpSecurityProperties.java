@@ -14,6 +14,10 @@ public class IpSecurityProperties {
     private List<String> whitelistedCidrs = new ArrayList<>();
     private List<String> exemptUserAgents = new ArrayList<>();
     private InternalTools internalTools = new InternalTools();
+    // Deliberately empty by default: X-Forwarded-For/X-Real-IP are only honored when the
+    // request's immediate peer matches one of these entries (exact IP or CIDR). Otherwise
+    // those headers are attacker-controlled and this app sees only request.getRemoteAddr().
+    private List<String> trustedProxies = new ArrayList<>();
 
     public int getMaxRequestsPerMinute() {
         return maxRequestsPerMinute;
@@ -61,6 +65,14 @@ public class IpSecurityProperties {
 
     public void setInternalTools(InternalTools internalTools) {
         this.internalTools = internalTools;
+    }
+
+    public List<String> getTrustedProxies() {
+        return trustedProxies;
+    }
+
+    public void setTrustedProxies(List<String> trustedProxies) {
+        this.trustedProxies = trustedProxies;
     }
 
     public static class InternalTools {

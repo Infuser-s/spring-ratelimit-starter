@@ -19,6 +19,7 @@ import org.springframework.util.StringUtils;
 import in.infusers.library.ratelimit.alert.SecurityAlertService;
 import in.infusers.library.ratelimit.config.IpSecurityProperties;
 import in.infusers.library.ratelimit.core.ClientIpResolver;
+import in.infusers.library.ratelimit.core.IpRangeMatcher;
 import in.infusers.library.ratelimit.core.RateLimitingService;
 
 /** IP-based security rate limiter. First in the filter chain (Order 1). */
@@ -44,7 +45,7 @@ public class IPSecurityRateLimitFilter implements Filter {
 
         HttpServletRequest httpRequest = (HttpServletRequest) request;
         HttpServletResponse httpResponse = (HttpServletResponse) response;
-        String clientIp = ClientIpResolver.resolve(httpRequest);
+        String clientIp = ClientIpResolver.resolve(httpRequest, ipSecurityProperties.getTrustedProxies());
 
         if (shouldBypassRateLimit(clientIp, httpRequest)) {
             chain.doFilter(request, response);
@@ -135,7 +136,7 @@ public class IPSecurityRateLimitFilter implements Filter {
     }
 
     private boolean isIpInCidrRange(String clientIp) {
-        // CIDR matching not yet implemented — whitelistedCidrs is reserved for this.
-        return false;
+        return ipSecurityProperties.getWhitelistedCidrs().stream()
+                .anyMatch(cidr -> IpRangeMatcher.matches(clientIp, cidr));
     }
 }

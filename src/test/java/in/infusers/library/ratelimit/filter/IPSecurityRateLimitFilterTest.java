@@ -53,6 +53,60 @@ class IPSecurityRateLimitFilterTest {
     }
 
     @Test
+    void whitelistedCidrBypassesRateLimit() throws Exception {
+        init();
+        properties.getWhitelistedCidrs().add("10.0.0.0/8");
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRemoteAddr("10.1.2.3");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockFilterChain chain = new MockFilterChain();
+
+        filter.doFilter(request, response, chain);
+
+        verify(rateLimitingService, never()).isAllowed(anyString(), anyInt(), any());
+    }
+
+    @Test
+    void spoofedForwardedHeaderCannotFakeWhitelistedIpWithoutTrustedProxyConfigured() throws Exception {
+        // Regression test for the fix: whitelisting 127.0.0.1 must not be bypassable by an
+        // arbitrary caller simply sending X-Forwarded-For: 127.0.0.1 (the exact example value
+        // this project's own README shows for whitelisted-ips).
+        init();
+        properties.getWhitelistedIps().add("127.0.0.1");
+        when(rateLimitingService.isAllowed(anyString(), anyInt(), any())).thenReturn(true);
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRemoteAddr("203.0.113.9");
+        request.addHeader("X-Forwarded-For", "127.0.0.1");
+        request.addHeader("User-Agent", "Mozilla/5.0");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockFilterChain chain = new MockFilterChain();
+
+        filter.doFilter(request, response, chain);
+
+        verify(rateLimitingService).isAllowed(eq("ip_security:203.0.113.9"), anyInt(), any());
+    }
+
+    @Test
+    void honorsForwardedHeaderOnlyWhenPeerIsConfiguredTrustedProxy() throws Exception {
+        init();
+        properties.getTrustedProxies().add("10.0.0.1");
+        when(rateLimitingService.isAllowed(anyString(), anyInt(), any())).thenReturn(true);
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRemoteAddr("10.0.0.1");
+        request.addHeader("X-Forwarded-For", "1.2.3.4");
+        request.addHeader("User-Agent", "Mozilla/5.0");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockFilterChain chain = new MockFilterChain();
+
+        filter.doFilter(request, response, chain);
+
+        verify(rateLimitingService).isAllowed(eq("ip_security:1.2.3.4"), anyInt(), any());
+    }
+
+    @Test
     void exemptUserAgentBypassesRateLimit() throws Exception {
         init();
         properties.getExemptUserAgents().add("UptimeRobot");

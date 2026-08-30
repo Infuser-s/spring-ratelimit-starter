@@ -12,7 +12,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import in.infusers.library.ratelimit.alert.SecurityAlertService;
+import in.infusers.library.ratelimit.config.IpSecurityProperties;
 import in.infusers.library.ratelimit.config.RateLimitProperties;
+import in.infusers.library.ratelimit.core.ClientIpResolver;
 import in.infusers.library.ratelimit.core.EndpointNormalizer;
 import in.infusers.library.ratelimit.core.RateLimitingService;
 
@@ -33,16 +35,19 @@ public class RateLimitingFilter extends HttpFilter {
     private final RateLimitProperties rateLimitProperties;
     private final EndpointNormalizer endpointNormalizer;
     private final SecurityAlertService securityAlertService;
+    private final IpSecurityProperties ipSecurityProperties;
     private final RateLimitProperties.RateLimitConfig defaultConfig;
 
     public RateLimitingFilter(RateLimitingService rateLimitingService,
                                RateLimitProperties rateLimitProperties,
                                EndpointNormalizer endpointNormalizer,
-                               SecurityAlertService securityAlertService) {
+                               SecurityAlertService securityAlertService,
+                               IpSecurityProperties ipSecurityProperties) {
         this.rateLimitingService = rateLimitingService;
         this.rateLimitProperties = rateLimitProperties;
         this.endpointNormalizer = endpointNormalizer;
         this.securityAlertService = securityAlertService;
+        this.ipSecurityProperties = ipSecurityProperties;
         this.defaultConfig = createDefaultConfig();
     }
 
@@ -59,7 +64,7 @@ public class RateLimitingFilter extends HttpFilter {
         String requestURI = endpointNormalizer.normalize(request.getRequestURI());
         RateLimitProperties.RateLimitConfig config = getConfigForPath(requestURI);
 
-        String clientIp = request.getRemoteAddr();
+        String clientIp = ClientIpResolver.resolve(request, ipSecurityProperties.getTrustedProxies());
         String safeIp = Base64.getUrlEncoder().encodeToString(clientIp.getBytes(StandardCharsets.UTF_8));
         String key = safeIp + ":" + requestURI;
 

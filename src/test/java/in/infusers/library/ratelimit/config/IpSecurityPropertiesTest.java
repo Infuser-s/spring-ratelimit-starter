@@ -13,9 +13,21 @@ class IpSecurityPropertiesTest {
         assertThat(properties.getMaxRequestsPerMinute()).isEqualTo(100);
         assertThat(properties.getSuspiciousThreshold()).isEqualTo(20);
         assertThat(properties.getWhitelistedIps()).isEmpty();
+        assertThat(properties.getWhitelistedCidrs()).isEmpty();
         assertThat(properties.getExemptUserAgents()).isEmpty();
         assertThat(properties.getInternalTools().getApiKeyHeader()).isEqualTo("X-Internal-API-Key");
         assertThat(properties.getInternalTools().getValidApiKeys()).isEmpty();
+        // Empty by default is the safe default — see ClientIpResolver: forwarded headers are
+        // only honored from a peer explicitly listed here.
+        assertThat(properties.getTrustedProxies()).isEmpty();
+    }
+
+    @Test
+    void trustedProxiesCanBeConfigured() {
+        IpSecurityProperties properties = new IpSecurityProperties();
+        properties.setTrustedProxies(java.util.List.of("10.0.0.1", "192.168.0.0/16"));
+
+        assertThat(properties.getTrustedProxies()).containsExactly("10.0.0.1", "192.168.0.0/16");
     }
 
     @Test
