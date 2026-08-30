@@ -49,7 +49,28 @@ infusers:
         api-key-header: X-Internal-API-Key
         valid-api-keys:
           - your-internal-key
+      trusted-proxies:            # required to make whitelisting/rate-limiting IP-aware at all
+        - 127.0.0.1               # behind a reverse proxy — see note below
 ```
+
+### `trusted-proxies` — read this before deploying behind any reverse proxy
+
+`whitelisted-ips`/`whitelisted-cidrs` and the per-route rate limiter key requests by the
+caller's IP. If your app sits behind a reverse proxy (nginx, a load balancer, Cloudflare, …),
+the only IP this library sees directly is the proxy's own — the real client IP arrives via the
+`X-Forwarded-For`/`X-Real-IP` headers instead, and **those headers are just as easy for an
+attacker to set as the proxy is**. Without `trusted-proxies` configured, this library does the
+safe thing and ignores those headers entirely, using the raw connection address — which means
+every request behind a proxy is (correctly, if unhelpfully) treated as coming from the proxy
+itself.
+
+Set `trusted-proxies` to the proxy's own IP (or CIDR range) to opt in: the header is honored
+**only** when the immediate connection is from an address in this list. A client that isn't
+connecting through your proxy — including one that sends
+`X-Forwarded-For: 127.0.0.1` directly, matching the `whitelisted-ips` example above — is not
+affected by this setting and cannot spoof its way past the whitelist or the rate limiter. Leave
+`trusted-proxies` empty (the default) if you have no reverse proxy in front of this app, or if
+your proxy already strips inbound `X-Forwarded-For`/`X-Real-IP` headers before adding its own.
 
 ## Wire up your own alerting
 

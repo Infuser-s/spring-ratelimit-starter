@@ -1,115 +1,95 @@
 @Library('infusers-shared-lib') _
 
-pipeline {
-    agent any
+properties([
+    disableConcurrentBuilds(abortPrevious: true),
+    buildDiscarder(logRotator(numToKeepStr: '10'))
+])
+quietPeriod(0)
 
-    environment {
-        PROJECT_TYPE = 'springboot'
-        GNUPGHOME = "${WORKSPACE}/.gnupg"
-        GPG_TTY = '/dev/tty'
-        MAVEN_CACHE = "${HOME}/maven-caches/spring-ratelimit-starter/prod"
-        CONFIGURATION = 'prod'
-    }
+// Scripted on purpose - see infusers-auth/Jenkinsfile for why (executor pinning bug).
+// Kills any lower-priority test/analysis job currently holding global-executor
+// instead of waiting for it to finish naturally - see abortConflictingJobs.groovy.
+abortConflictingJobs()
+withExclusiveBuild(resource: "spring-ratelimit-starter-activity-prod", priority: 10) {
+    env.PROJECT_TYPE = 'springboot'
+    env.GNUPGHOME = "${WORKSPACE}/.gnupg"
+    env.GPG_TTY = '/dev/tty'
+    env.MAVEN_CACHE = "${HOME}/maven-caches/spring-ratelimit-starter/prod"
+    env.CONFIGURATION = 'prod'
 
-    options {
-        quietPeriod(0)
-        disableConcurrentBuilds(abortPrevious: true)
+    try {
         // GPG setup + Maven build + Maven Central publish (Sonatype can take 3-10 min on slow days).
-        timeout(time: 30, unit: 'MINUTES')
-        buildDiscarder(logRotator(numToKeepStr: '10'))
-        lock(resource: "spring-ratelimit-starter-activity-prod", quantity: 1)
-    }
+        timeout(time: 30, unit: 'MINUTES') {
+            stage("Notify") {
+                notify(notify.STATUS_STARTED)
+            }
 
-    stages {
-        stage("Notify") {
-            steps {
-                script {
-                    notify(notify.STATUS_STARTED)
+            // Declarative's implicit SCM auto-checkout is gone in scripted pipelines -
+            // this job's own pom.xml has to be checked out explicitly before mvnInstall.
+            stage('Checkout') {
+                checkout scm
+            }
+
+            stage('Setup GPG') {
+                sh '''
+                #!/bin/bash
+                mkdir -p ${GNUPGHOME}
+                chmod 700 ${GNUPGHOME}
+                echo "pinentry-program /usr/bin/pinentry-tty" > ${GNUPGHOME}/gpg-agent.conf
+                echo "default-cache-ttl 600" >> ${GNUPGHOME}/gpg-agent.conf
+                echo "max-cache-ttl 7200" >> ${GNUPGHOME}/gpg-agent.conf
+                if ! pgrep -x "gpg-agent" > /dev/null; then
+                    gpg-agent --daemon
+                fi
+                '''
+            }
+
+            stage('Import GPG Keys') {
+                withCredentials([file(credentialsId: 'gpg-public-key', variable: 'PUBLIC_KEY_FILE')]) {
+                    sh 'gpg --import ${PUBLIC_KEY_FILE}'
+                }
+                withCredentials([file(credentialsId: 'gpg-private-key', variable: 'PRIVATE_KEY_FILE')]) {
+                    withCredentials([string(credentialsId: 'gpg-key-passphrase', variable: 'GPG_KEY_PASSPHRASE')]) {
+                        sh 'echo "${GPG_KEY_PASSPHRASE}" | gpg --batch --yes --passphrase-fd 0 --import ${PRIVATE_KEY_FILE}'
+                        sh 'gpg --list-secret-keys'
+                    }
                 }
             }
-        }
 
-        stage('Setup GPG') {
-            steps {
-                script {
+            stage('GPG Signing Check') {
+                withCredentials([string(credentialsId: 'gpg-key-passphrase', variable: 'GPG_KEY_PASSPHRASE')]) {
                     sh '''
                     #!/bin/bash
-                    mkdir -p ${GNUPGHOME}
-                    chmod 700 ${GNUPGHOME}
-                    echo "pinentry-program /usr/bin/pinentry-tty" > ${GNUPGHOME}/gpg-agent.conf
-                    echo "default-cache-ttl 600" >> ${GNUPGHOME}/gpg-agent.conf
-                    echo "max-cache-ttl 7200" >> ${GNUPGHOME}/gpg-agent.conf
-                    if ! pgrep -x "gpg-agent" > /dev/null; then
-                        gpg-agent --daemon
-                    fi
+                    export GPG_TTY=$(tty)
+                    export GNUPGHOME=${GNUPGHOME}
+                    echo "test message" | gpg --batch --yes --passphrase "$GPG_KEY_PASSPHRASE" --pinentry-mode loopback --clearsign --verbose
                     '''
                 }
             }
-        }
 
-        stage('Import GPG Keys') {
-            steps {
-                script {
-                    withCredentials([file(credentialsId: 'gpg-public-key', variable: 'PUBLIC_KEY_FILE')]) {
-                        sh 'gpg --import ${PUBLIC_KEY_FILE}'
-                    }
-                    withCredentials([file(credentialsId: 'gpg-private-key', variable: 'PRIVATE_KEY_FILE')]) {
-                        withCredentials([string(credentialsId: 'gpg-key-passphrase', variable: 'GPG_KEY_PASSPHRASE')]) {
-                            sh 'echo "${GPG_KEY_PASSPHRASE}" | gpg --batch --yes --passphrase-fd 0 --import ${PRIVATE_KEY_FILE}'
-                            sh 'gpg --list-secret-keys'
-                        }
-                    }
+            stage('Version check in Maven Central') {
+                def version = readMavenPom().version
+                echo "Checking if version ${version} exists in Central..."
+
+                def artifactGroup = 'in.infusers.library'
+                def artifactId = 'spring-ratelimit-starter'
+
+                def repositoryUrl = "https://repo.maven.apache.org/maven2/${artifactGroup.replace('.', '/')}/${artifactId}/${version}"
+                def response = httpRequest(url: repositoryUrl, validResponseCodes: '200, 404', ignoreSslErrors: true)
+
+                if (response.status == 200) {
+                    error("Version ${version} already exists in Maven Central. Increment the version in pom.xml before deploying to Prod.")
                 }
             }
-        }
 
-        stage('GPG Signing Check') {
-            steps {
-                withCredentials([string(credentialsId: 'gpg-key-passphrase', variable: 'GPG_KEY_PASSPHRASE')]) {
-                    script {
-                        sh '''
-                        #!/bin/bash
-                        export GPG_TTY=$(tty)
-                        export GNUPGHOME=${GNUPGHOME}
-                        echo "test message" | gpg --batch --yes --passphrase "$GPG_KEY_PASSPHRASE" --pinentry-mode loopback --clearsign --verbose
-                        '''
-                    }
+            stage('Local: Build & Install') {
+                sh "mkdir -p ${env.MAVEN_CACHE}"
+                withMaven(mavenLocalRepo: "${env.MAVEN_CACHE}") {
+                    com.infusers.util.BuildUtils.mvnInstall(this, env.PROJECT_TYPE, env.CONFIGURATION)
                 }
             }
-        }
 
-        stage('Version check in Maven Central') {
-            steps {
-                script {
-                    def version = readMavenPom().version
-                    echo "Checking if version ${version} exists in Central..."
-
-                    def artifactGroup = 'in.infusers.library'
-                    def artifactId = 'spring-ratelimit-starter'
-
-                    def repositoryUrl = "https://repo.maven.apache.org/maven2/${artifactGroup.replace('.', '/')}/${artifactId}/${version}"
-                    def response = httpRequest(url: repositoryUrl, validResponseCodes: '200, 404', ignoreSslErrors: true)
-
-                    if (response.status == 200) {
-                        error("Version ${version} already exists in Maven Central. Increment the version in pom.xml before deploying to Prod.")
-                    }
-                }
-            }
-        }
-
-        stage('Local: Build & Install') {
-            steps {
-                script {
-                    sh "mkdir -p ${env.MAVEN_CACHE}"
-                    withMaven(mavenLocalRepo: "${env.MAVEN_CACHE}") {
-                        com.infusers.util.BuildUtils.mvnInstall(this, env.PROJECT_TYPE, env.CONFIGURATION)
-                    }
-                }
-            }
-        }
-
-        stage('Maven Central: Push') {
-            steps {
+            stage('Maven Central: Push') {
                 withCredentials([
                     file(credentialsId: 'gpg-public-key', variable: 'GPG_PUBLIC_KEY'),
                     string(credentialsId: 'gpg-key-passphrase', variable: 'GPG_KEY_PASSPHRASE_VALUE'),
@@ -119,28 +99,21 @@ pipeline {
                         passwordVariable: 'SONATYPE_PASSWORD'
                     )
                 ]) {
-                    script {
-                        sh "gpg --import ${GPG_PUBLIC_KEY}"
-                        env.GPG_KEY_PASSPHRASE = GPG_KEY_PASSPHRASE_VALUE
-                        def mvnHome = tool name: 'maven-3', type: 'maven'
+                    sh "gpg --import ${GPG_PUBLIC_KEY}"
+                    env.GPG_KEY_PASSPHRASE = GPG_KEY_PASSPHRASE_VALUE
+                    def mvnHome = tool name: 'maven-3', type: 'maven'
 
-                        sh "mkdir -p ${env.MAVEN_CACHE}"
+                    sh "mkdir -p ${env.MAVEN_CACHE}"
 
-                        withMaven(mavenLocalRepo: "${env.MAVEN_CACHE}") {
-                            configFileProvider([configFile(fileId: '9d92756b-c17e-445c-9eca-d1e7748d7b67', variable: 'MAVEN_SETTINGS')]) {
-                                sh "${mvnHome}/bin/mvn -s ${MAVEN_SETTINGS} -Pprod deploy -Dgpg.passphrase=${GPG_KEY_PASSPHRASE} -Dsonatype.username=${SONATYPE_USERNAME} -Dsonatype.password=${SONATYPE_PASSWORD} -Dmaven.test.skip=true"
-                            }
+                    withMaven(mavenLocalRepo: "${env.MAVEN_CACHE}") {
+                        configFileProvider([configFile(fileId: '9d92756b-c17e-445c-9eca-d1e7748d7b67', variable: 'MAVEN_SETTINGS')]) {
+                            sh "${mvnHome}/bin/mvn -s ${MAVEN_SETTINGS} -Pprod deploy -Dgpg.passphrase=${GPG_KEY_PASSPHRASE} -Dsonatype.username=${SONATYPE_USERNAME} -Dsonatype.password=${SONATYPE_PASSWORD} -Dmaven.test.skip=true"
                         }
                     }
                 }
             }
         }
-    }
-    post {
-        always {
-            script {
-                postBuildUtils.deleteJenkinsJobAndNotify()
-            }
-        }
+    } finally {
+        postBuildUtils.deleteJenkinsJobAndNotify()
     }
 }

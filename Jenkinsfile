@@ -1,48 +1,41 @@
 @Library('infusers-shared-lib') _
 
-pipeline {
-    agent any
+properties([
+    disableConcurrentBuilds(abortPrevious: true),
+    buildDiscarder(logRotator(numToKeepStr: '10'))
+])
+quietPeriod(0)
 
-    environment {
-        PROJECT_TYPE = 'springboot'
-        MAVEN_CACHE = "${HOME}/maven-caches/spring-ratelimit-starter/dev"
-    }
+// Scripted on purpose - see infusers-auth/Jenkinsfile for why (executor pinning bug).
+// Kills any lower-priority test/analysis job currently holding global-executor
+// instead of waiting for it to finish naturally - see abortConflictingJobs.groovy.
+abortConflictingJobs()
+withExclusiveBuild(resource: "spring-ratelimit-starter-activity", priority: 10) {
+    env.PROJECT_TYPE = 'springboot'
+    env.MAVEN_CACHE = "${HOME}/maven-caches/spring-ratelimit-starter/dev"
 
-    options {
-        quietPeriod(0)
-        disableConcurrentBuilds(abortPrevious: true)
-        timeout(time: 15, unit: 'MINUTES')
-        buildDiscarder(logRotator(numToKeepStr: '10'))
-        lock(resource: "spring-ratelimit-starter-activity", quantity: 1)
-    }
+    try {
+        timeout(time: 15, unit: 'MINUTES') {
+            stage("Notify") {
+                notify(notify.STATUS_STARTED)
+            }
 
-    stages {
-        stage("Notify") {
-            steps {
-                script {
-                    notify(notify.STATUS_STARTED)
+            // Declarative's implicit SCM auto-checkout is gone in scripted pipelines -
+            // this job's own pom.xml has to be checked out explicitly before mvnInstall.
+            stage('Checkout') {
+                checkout scm
+            }
+
+            stage('Build & Test') {
+                // -Pdev keeps GPG signing skipped — this pipeline only verifies
+                // compile + tests on every push, it never publishes anywhere.
+                sh "mkdir -p ${env.MAVEN_CACHE}"
+                withMaven(mavenLocalRepo: "${env.MAVEN_CACHE}") {
+                    com.infusers.util.BuildUtils.mvnInstall(this, env.PROJECT_TYPE, 'dev')
                 }
             }
         }
-
-        stage('Build & Test') {
-            steps {
-                script {
-                    // -Pdev keeps GPG signing skipped — this pipeline only verifies
-                    // compile + tests on every push, it never publishes anywhere.
-                    sh "mkdir -p ${env.MAVEN_CACHE}"
-                    withMaven(mavenLocalRepo: "${env.MAVEN_CACHE}") {
-                        com.infusers.util.BuildUtils.mvnInstall(this, env.PROJECT_TYPE, 'dev')
-                    }
-                }
-            }
-        }
-    }
-    post {
-        always {
-            script {
-                postBuildUtils.deleteJenkinsJobAndNotify()
-            }
-        }
+    } finally {
+        postBuildUtils.deleteJenkinsJobAndNotify()
     }
 }

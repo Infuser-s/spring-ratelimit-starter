@@ -1,6 +1,8 @@
 package in.infusers.library.ratelimit.filter;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -13,6 +15,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import in.infusers.library.ratelimit.alert.SecurityAlertService;
+import in.infusers.library.ratelimit.config.IpSecurityProperties;
 import in.infusers.library.ratelimit.config.RateLimitProperties;
 import in.infusers.library.ratelimit.config.RateLimitStarterProperties;
 import in.infusers.library.ratelimit.core.EndpointNormalizer;
@@ -36,12 +39,14 @@ class RateLimitingFilterTest {
     private SecurityAlertService securityAlertService;
 
     private RateLimitProperties rateLimitProperties;
+    private IpSecurityProperties ipSecurityProperties;
     private RateLimitingFilter filter;
 
     private void init() {
         EndpointNormalizer endpointNormalizer = new EndpointNormalizer(new RateLimitStarterProperties());
         rateLimitProperties = new RateLimitProperties();
-        filter = new RateLimitingFilter(rateLimitingService, rateLimitProperties, endpointNormalizer, securityAlertService);
+        ipSecurityProperties = new IpSecurityProperties();
+        filter = new RateLimitingFilter(rateLimitingService, rateLimitProperties, endpointNormalizer, securityAlertService, ipSecurityProperties);
     }
 
     @Test
@@ -116,5 +121,28 @@ class RateLimitingFilterTest {
         filter.doFilter(request, response, chain);
 
         verify(rateLimitingService).isAllowed(anyString(), eq(5), any());
+    }
+
+    @Test
+    void keysByRealClientIpBehindAConfiguredTrustedProxyInsteadOfTheProxysOwnAddress() throws Exception {
+        // Without this, every request arriving through a real reverse proxy would bucket
+        // under the proxy's single IP, letting one abusive client exhaust the shared counter
+        // for every legitimate user behind it.
+        init();
+        ipSecurityProperties.getTrustedProxies().add("10.0.0.1");
+        when(rateLimitingService.isAllowed(anyString(), anyInt(), any())).thenReturn(true);
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRemoteAddr("10.0.0.1");
+        request.addHeader("X-Forwarded-For", "1.2.3.4");
+        request.setRequestURI("/unmapped/path");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockFilterChain chain = new MockFilterChain();
+
+        String expectedSafeIp = Base64.getUrlEncoder().encodeToString("1.2.3.4".getBytes(StandardCharsets.UTF_8));
+
+        filter.doFilter(request, response, chain);
+
+        verify(rateLimitingService).isAllowed(eq(expectedSafeIp + ":/unmapped/path"), anyInt(), any());
     }
 }
