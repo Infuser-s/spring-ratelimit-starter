@@ -25,17 +25,3 @@ AI support bots answer only from curated content (stale → wrong/"not covered" 
 - WealthLens bot: `wealth-lens/docs/USER_GUIDE.md`, `wealth-lens/docs/product/PRODUCT_SPEC.md`, `wealth-lens/docs/security/CONFIGURATION.md`, `wealth-lens/docs/security/SECURITY.md`, and the route-based fallback answers in `wealth-lens/backend/app/services/support_service.py`.
 
 When finishing, say which support content you updated, or that none was affected.
-
-<!-- agent-coordination:begin v1 -->
-## Parallel sessions
-Read-only work, subagents (parent claims): don't claim, obey the rest. Can't push claims? Say so, go on; yours = files you changed.
-- **List** before first write per repo, after compaction, and before widening/commit/server/deps: `git status -s; git fetch -qp origin '+refs/claims/*:refs/claims/*'; git log --no-walk --glob=claims --format='%S %cr %an@%s'`
-- **Claim**: `c=$(git commit-tree $(git mktree </dev/null) -m "$(hostname -s) · <session title> · owns: <paths, ports, DB, deps>") && git push -q origin "$c":refs/claims/<task>` (no quotes/backticks/$/secrets). Rejected: rename. Re-list: last-listed (oldest) overlapping claim wins; loser drops the overlap. Update yours: `push -f`.
-- **Others'** changes (dirty/staged outside your claim, even "subagent leftovers"), claims, branches, worktrees: never revert/stash (pull `--no-autostash`)/clean/delete/commit/adopt them or switch/rebase/reset under them without user OK.
-- **Overlap** (other claims, any branch/status; unclaimed dirty files): do other parts; `SendMessage` the owner if in `ListAgents`, else ask the user. Pinged? ETA or release.
-- **Shared** catalog/backlog/security/changelog: claim/edit only your rows, last; stage only if its `git diff` is all yours, else ask. Next migration/ID number: claim `<kind>-<n>`.
-- **Runtime**: check ports (`ss -ltnp`; macOS `lsof -nP -iTCP -sTCP:LISTEN`) before starting servers; restart/migrate/reset/deploy others'/shared things only with owner/user OK.
-- **Commit** (if you commit): `git add <your paths> && git commit` (never `-A`/`-a`/`.`/`commit -- <paths>`); `git show --stat HEAD` = yours + hook bumps, else `git reset --soft @~`, ask. Push only if `git log HEAD --not --remotes` is all yours.
-- **Compaction summaries** keep: claim names/status, files changed and why, decisions, next steps, user preferences.
-- **Close**: done, docs updated, all committed → delete your claims (`git push -q origin :refs/claims/<task>`) and merged branches/worktrees you made. Else re-push `status: review|handoff|blocked`, tell the user.
-<!-- agent-coordination:end -->
