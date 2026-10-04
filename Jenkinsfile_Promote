@@ -84,8 +84,13 @@ withExclusiveBuild(resource: "spring-ratelimit-starter-activity-prod", priority:
 
             stage('Local: Build & Install') {
                 sh "mkdir -p ${env.MAVEN_CACHE}"
+                // Plain mvn, not BuildUtils.mvnInstall: that resolves the latest infusers-library and
+                // mints a CodeArtifact token, both of which hard-fail for prod since Jenkins has no AWS
+                // (jenkins-shared-lib docs/aws-guard-assessment.md Step 6). This OSS starter has no
+                // in.infusers.* dependency and publishes to Maven Central, so it needs neither.
+                def mvnHome = tool name: 'maven-3', type: 'maven'
                 withMaven(mavenLocalRepo: "${env.MAVEN_CACHE}") {
-                    com.infusers.util.BuildUtils.mvnInstall(this, env.PROJECT_TYPE, env.CONFIGURATION)
+                    sh "${mvnHome}/bin/mvn -B -ntp -P${env.CONFIGURATION} -Dmaven.repo.local=${env.MAVEN_CACHE} clean install -DskipTests=true"
                 }
             }
 
