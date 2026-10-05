@@ -9,6 +9,6 @@ Security-review your changes where applicable (e.g. auth, input handling, secret
 Shared rules live in `infusers-meta/docs/agent-rules/` (`ownership.md`, `support-bot-content.md`, `documentation.md`); read them rather than recalling. Inline essentials:
 
 - Docs in `docs/`, updated in the same change; table formats per `infusers-hangar/docs/engineering/DOC_FORMAT.md`.
-- `docs/CATALOG.md` = what's shipped; `docs/BACKLOG.md` = open work only (row removed in the change that finishes it); `docs/SECURITY.md` = open findings only; `docs/product/*.md` = end-user docs. Hangar syncs these from GitHub: push, then run a sync.
+- `docs/CATALOG.md` = what's shipped; `docs/BACKLOG.md` = open work only (row removed in the change that finishes it); `docs/SECURITY.md` = open findings only; `docs/product/*.md` = end-user docs. Hangar (org `Infuser-s`) reads only CATALOG and product docs today; BACKLOG/SECURITY follow the format but aren't read yet. Push, then run a sync.
 - Put each change in the repo that owns it (shared code → `infusers-library`, authn/authz → `infusers-auth`, UI → `infusers-web-app-stage`, build/deploy → `infusers-scripts`/`jenkins-shared-lib`, domain → owning service); library changes must be published before consumers use them.
 - A change to a feature, route, gate, limit, error or availability isn't done until the support bot content reflects it (Infusers bot `infusers-api` `support-kb`, Hangar bot `docs/product`, WealthLens docs); say which you updated, or that none was affected.
