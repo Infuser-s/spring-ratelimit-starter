@@ -1,5 +1,7 @@
 # spring-ratelimit-starter
 
+> Part of Infusers — platform docs, architecture and roadmap: [infusers-meta](https://github.com/Infuser-s/infusers-meta).
+
 Redis-backed rate limiting for Spring Boot — per-route limits, IP-level security filtering, pluggable event/alert hooks. Auto-configures via Spring Boot's standard autoconfiguration mechanism; no `@Import` or manual bean wiring needed.
 
 ## What it does
