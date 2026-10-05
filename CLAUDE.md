@@ -7,7 +7,7 @@ Security-review your changes where applicable (e.g. auth, input handling, secret
 <!-- infusers-meta:begin -->
 ## Documentation & shared rules (managed in infusers-meta)
 
-Shared rules: [infusers-meta/docs/agent-rules](https://github.com/Infuser-s/infusers-meta/tree/master/docs/agent-rules) (`ownership.md`, `support-bot-content.md`, `documentation.md`). Read them from a sibling checkout if present, otherwise from that link; this block is the self-contained summary and works on any machine or user. Doc table formats: [infusers-hangar DOC_FORMAT.md](https://github.com/bro-labs/infusers-hangar/blob/master/docs/engineering/DOC_FORMAT.md).
+Shared rules: [infusers-meta/docs/agent-rules](https://github.com/Infuser-s/infusers-meta/tree/master/docs/agent-rules) (`ownership.md`, `support-bot-content.md`, `documentation.md`). Read them from a sibling checkout if present, otherwise from that link; this block is the self-contained summary and works on any machine or user. Doc table formats: [infusers-hangar DOC_FORMAT.md](https://github.com/Infuser-s/infusers-hangar/blob/master/docs/engineering/DOC_FORMAT.md).
 
 - Docs live in `docs/` and are updated in the same change as the code. `docs/CATALOG.md` (pipe table `Feature | Status | Summary | Doc`) = what's shipped; `docs/BACKLOG.md` (`ID | Title | Priority | Status | Doc | Type`) = open work only, row removed in the change that finishes it; `docs/SECURITY.md` (`ID | Title | Severity | Status | Doc`) = open findings only, no secrets or internal hostnames; `docs/product/*.md` = end-user docs.
 - Hangar (org `Infuser-s`) reads only CATALOG and `docs/product/*.md` today; BACKLOG/SECURITY follow the format but aren't read yet. Push, then run a sync.
