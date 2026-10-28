@@ -2,6 +2,8 @@
 
 Build every layer (UI, DB, backend, API, …) to industry standard, following its established conventions; no one-off patterns.
 
+A `mvn test` (no `clean`) that reports `Unresolved compilation problem` / missing-method errors on code that looks correct is almost always stale incremental `.class` files, not a real defect — rerun with `mvn clean test` before concluding something is broken.
+
 Security-review your changes where applicable (e.g. auth, input handling, secrets, deps, access control) before calling them done.
 
 ## Repo ownership & where changes belong
