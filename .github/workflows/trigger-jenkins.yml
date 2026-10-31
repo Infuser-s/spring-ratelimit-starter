@@ -1,0 +1,43 @@
+# Triggers the Jenkins stage build on push to stage. Prod (Jenkinsfile_Promote) is manual on purpose.
+# Replaces the repo's native GitHub webhook: the jenkins.infusers.in proxy (NPM) only lets
+# /generic-webhook-trigger/ through with an X-Webhook-Secret header, which a native webhook
+# cannot send (it got 403 on every delivery). See infusers-scripts
+# docs/stage/INCIDENT_2026-09-25_jenkins-webhook-blocked-by-npm-allowlist.md.
+name: Trigger Jenkins
+
+on:
+  push:
+    branches: [stage]
+    # Skip when EVERY changed file is docs; use "Run workflow" to force a build.
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.claude/**'
+      - '.gitignore'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: trigger-jenkins
+  cancel-in-progress: false
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger Jenkins job via webhook
+        env:
+          JENKINS_WEBHOOK_SECRET: ${{ secrets.JENKINS_WEBHOOK_SECRET }}
+        run: |
+          if [[ -z "${JENKINS_WEBHOOK_SECRET}" ]]; then
+            echo "::error::JENKINS_WEBHOOK_SECRET repo secret is not set - the proxy will reject this request (403)"
+            exit 1
+          fi
+          # --fail-with-body: a proxy/Jenkins rejection must fail the run, not pass silently.
+          curl -sS --fail-with-body --max-time 30 --retry 2 --retry-all-errors -X POST \
+            "https://jenkins.infusers.in/generic-webhook-trigger/invoke?token=invoke-build-token-spring-ratelimit-starter-stage" \
+            -H "Content-Type: application/json" \
+            -H "X-Webhook-Secret: ${JENKINS_WEBHOOK_SECRET}" \
+            --data '{}'
