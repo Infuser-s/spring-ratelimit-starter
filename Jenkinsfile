@@ -30,7 +30,12 @@ withExclusiveBuild(resource: "spring-ratelimit-starter-activity", priority: 10) 
                 // -Pdev keeps GPG signing skipped — this pipeline only verifies
                 // compile + tests on every push, it never publishes anywhere.
                 sh "mkdir -p ${env.MAVEN_CACHE}"
-                withMaven(mavenLocalRepo: "${env.MAVEN_CACHE}") {
+                // coveragePublisher disabled: mvnInstall('dev') runs jacoco:report as part of its
+                // own mvn ... install, so withMaven's implicit auto-publish would record a second,
+                // redundant CoverageBuildAction alongside the explicit recordCoverage call below
+                // (duplicate Coverage tab/trend chart - see jenkins-shared-lib
+                // docs/jenkins-job-incidents.md 2026-11-05/06).
+                withMaven(mavenLocalRepo: "${env.MAVEN_CACHE}", options: [coveragePublisher(disabled: true)]) {
                     com.infusers.util.BuildUtils.mvnInstall(this, env.PROJECT_TYPE, 'dev')
                 }
 
