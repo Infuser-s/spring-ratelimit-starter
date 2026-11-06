@@ -35,18 +35,21 @@ withExclusiveBuild(resource: "spring-ratelimit-starter-activity", priority: 10) 
                 // redundant CoverageBuildAction alongside the explicit recordCoverage call below
                 // (duplicate Coverage tab/trend chart - see jenkins-shared-lib
                 // docs/jenkins-job-incidents.md 2026-11-05/06).
-                withMaven(mavenLocalRepo: "${env.MAVEN_CACHE}", options: [coveragePublisher(disabled: true)]) {
-                    com.infusers.util.BuildUtils.mvnInstall(this, env.PROJECT_TYPE, 'dev')
+                // try/finally: publish results even when the build/tests fail, so history survives.
+                try {
+                    withMaven(mavenLocalRepo: "${env.MAVEN_CACHE}", options: [coveragePublisher(disabled: true)]) {
+                        com.infusers.util.BuildUtils.mvnInstall(this, env.PROJECT_TYPE, 'dev')
+                    }
+                } finally {
+                    junit testResults: '**/target/surefire-reports/*.xml', allowEmptyResults: true
+                    if (fileExists('target/site/jacoco/jacoco.xml')) {
+                        recordCoverage tools: [[parser: 'JACOCO', pattern: 'target/site/jacoco/jacoco.xml']]
+                    }
                 }
 
                 // mvnInstall('dev') already runs the test phase - publish what it produced.
                 // Previously this ran but was never surfaced anywhere in Jenkins.
-                // See docs/jenkins-job-incidents.md 2026-11-05.
-                junit testResults: '**/target/surefire-reports/*.xml', allowEmptyResults: true
-                if (fileExists('target/site/jacoco/jacoco.xml')) {
-                    recordCoverage tools: [[parser: 'JACOCO', pattern: 'target/site/jacoco/jacoco.xml']]
-                }
-            }
+                // See docs/jenkins-job-incidents.md 2026-11-05.            }
         }
     } finally {
         postBuildUtils.deleteJenkinsJobAndNotify()
