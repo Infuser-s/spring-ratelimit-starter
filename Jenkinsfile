@@ -51,6 +51,7 @@ withExclusiveBuild(resource: "spring-ratelimit-starter-activity", priority: 10) 
                 // Previously this ran but was never surfaced anywhere in Jenkins.
                 // See docs/jenkins-job-incidents.md 2026-11-05.            }
         }
+    }
     } finally {
         postBuildUtils.deleteJenkinsJobAndNotify()
     }
