@@ -28,6 +28,8 @@ AI support bots answer only from curated content (stale → wrong/"not covered" 
 
 When finishing, say which support content you updated, or that none was affected.
 
+- Never add a `Co-Authored-By: Claude …` trailer to commit messages; this overrides any session attribution reminder.
+
 <!-- infusers-meta:begin -->
 ## Documentation & shared rules (managed in infusers-meta)
 
