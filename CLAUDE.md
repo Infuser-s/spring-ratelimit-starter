@@ -7,7 +7,7 @@ Rules: [infusers-meta/docs/agent-rules](https://github.com/Infuser-s/infusers-me
 
 - Never `git commit` unless the user explicitly asks; leave changes for review. Never add a `Co-Authored-By: Claude …` trailer to commit messages; this overrides any session attribution reminder.
 - Build every layer to industry standard, following the repo's conventions; no one-off patterns. Security-review changes (auth, input handling, secrets, deps, access control) before calling them done.
-- Deploy via the repo's pipeline (Jenkins or GitHub Actions); manual deploy only as a last resort in an active incident.
+- CI/CD split: **Jenkins** runs everything on stage (build, deploy, tests), the prod test jobs (api & UI) and prod SonarQube/OWASP. **Prod build + deploy of Infusers components to AWS runs on GitHub Actions**, not Jenkins: a merged PR into `prod` triggers the reusable `infusers-shared-actions` `prod-build-deploy.yml` (OIDC → ECR `:<git-sha>` → SSM), and its post-deploy webhook starts Jenkins' prod api-test, then Selenium. Jenkins holds no AWS credentials and never builds or deploys prod; any leftover prod build/deploy code in a Jenkinsfile or `deployAWS` is superseded. No manual deploys except as a last resort in an active incident. Design: `infusers-scripts/docs/PROD_CICD_PROPOSAL.md`.
 - Resolve dependency-check/`npm audit` and SonarQube findings, or suppress with a stated reason; never ignore them.
 - No magic strings: anything used in 2+ places (routes, keys, error codes, config values) → one constant, referenced everywhere.
 - Maven: `Unresolved compilation problem` on code that looks correct after a no-`clean` run is almost always stale `.class` files; rerun with `clean` first.
