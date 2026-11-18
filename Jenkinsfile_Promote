@@ -1,7 +1,9 @@
 @Library('infusers-shared-lib') _
 
 properties([
-    disableConcurrentBuilds(abortPrevious: true),
+    // No abortPrevious: aborting a run mid Maven Central upload is not rollback-able. A queued run
+    // waits, then fails the version check cleanly if the earlier run already published.
+    disableConcurrentBuilds(),
     buildDiscarder(logRotator(numToKeepStr: '10'))
 ])
 quietPeriod(0)
@@ -104,15 +106,24 @@ withExclusiveBuild(resource: "spring-ratelimit-starter-activity-prod", priority:
                         passwordVariable: 'SONATYPE_PASSWORD'
                     )
                 ]) {
-                    sh "gpg --import ${GPG_PUBLIC_KEY}"
-                    env.GPG_KEY_PASSPHRASE = GPG_KEY_PASSPHRASE_VALUE
+                    sh 'gpg --import "$GPG_PUBLIC_KEY"'
                     def mvnHome = tool name: 'maven-3', type: 'maven'
 
                     sh "mkdir -p ${env.MAVEN_CACHE}"
 
                     withMaven(mavenLocalRepo: "${env.MAVEN_CACHE}") {
                         configFileProvider([configFile(fileId: '9d92756b-c17e-445c-9eca-d1e7748d7b67', variable: 'MAVEN_SETTINGS')]) {
-                            sh "${mvnHome}/bin/mvn -s ${MAVEN_SETTINGS} -Pprod deploy -Dgpg.passphrase=${GPG_KEY_PASSPHRASE} -Dsonatype.username=${SONATYPE_USERNAME} -Dsonatype.password=${SONATYPE_PASSWORD} -Dmaven.test.skip=true"
+                            // Single-quoted: secrets are expanded by the shell from the withCredentials env vars,
+                            // never Groovy-interpolated. maven-gpg-plugin 3.x reads the passphrase from
+                            // MAVEN_GPG_PASSPHRASE, so no -Dgpg.passphrase and no persisted env.GPG_KEY_PASSPHRASE.
+                            withEnv(["MVN_HOME=${mvnHome}"]) {
+                                sh '''
+                                export MAVEN_GPG_PASSPHRASE="$GPG_KEY_PASSPHRASE_VALUE"
+                                "$MVN_HOME/bin/mvn" -s "$MAVEN_SETTINGS" -Pprod deploy \
+                                    -Dsonatype.username="$SONATYPE_USERNAME" -Dsonatype.password="$SONATYPE_PASSWORD" \
+                                    -Dmaven.test.skip=true
+                                '''
+                            }
                         }
                     }
                 }
