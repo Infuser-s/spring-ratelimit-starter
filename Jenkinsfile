@@ -35,9 +35,13 @@ withExclusiveBuild(resource: "spring-ratelimit-starter-activity", priority: 10) 
                 // redundant CoverageBuildAction alongside the explicit recordCoverage call below
                 // (duplicate Coverage tab/trend chart - see jenkins-shared-lib
                 // docs/jenkins-job-incidents.md 2026-11-05/06).
+                // junitPublisher disabled: the explicit junit step in finally below already publishes
+                // target/surefire-reports, so withMaven's own junitPublisher would record every test a
+                // second time (doubled Test Result Trend - see jenkins-shared-lib
+                // docs/jenkins-job-incidents.md 2026-11-07).
                 // try/finally: publish results even when the build/tests fail, so history survives.
                 try {
-                    withMaven(mavenLocalRepo: "${env.MAVEN_CACHE}", options: [coveragePublisher(disabled: true)]) {
+                    withMaven(mavenLocalRepo: "${env.MAVEN_CACHE}", options: [coveragePublisher(disabled: true), junitPublisher(disabled: true)]) {
                         com.infusers.util.BuildUtils.mvnInstall(this, env.PROJECT_TYPE, 'dev')
                     }
                 } finally {
@@ -49,9 +53,9 @@ withExclusiveBuild(resource: "spring-ratelimit-starter-activity", priority: 10) 
 
                 // mvnInstall('dev') already runs the test phase - publish what it produced.
                 // Previously this ran but was never surfaced anywhere in Jenkins.
-                // See docs/jenkins-job-incidents.md 2026-11-05.            }
+                // See docs/jenkins-job-incidents.md 2026-11-05.
+            }
         }
-    }
     } finally {
         postBuildUtils.deleteJenkinsJobAndNotify()
     }
